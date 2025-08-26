@@ -1,176 +1,455 @@
-<h2>Study Session</h2>
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Session - Study Time Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<!-- Timer Display -->
-<div id="timer-display">
-    <h1 id="timer">00:00:00</h1>
-    <p id="timer-status">Ready to study</p>
-</div>
+        body {
+            font-family: 'Poppins', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
 
-<!-- Subject Selection -->
-<select id="subject-select">
-    <option value="">Select Subject</option>
-    {% for subject in subjects %}
-        <option value="{{ subject.id }}">{{ subject.name }}</option>
-    {% endfor %}
-</select>
+        .study-session-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            padding: 2rem;
+        }
 
-<!-- Chapter Selection -->
-<select id="chapter-select" disabled>
-    <option value="">Select Chapter</option>
-</select>
+        .study-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
 
-<!-- Start/Pause/Save Buttons -->
-<button id="study-btn" disabled>Start Studying</button>
-<button id="save-time" style="display:none;">Save Study Time</button>
+        .study-header h2 {
+            font-size: 2.2rem;
+            color: #333;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
 
-<!-- Notes -->
-<textarea id="chapter-notes" placeholder="Add notes for this chapter..." disabled></textarea>
-<button id="save-notes" disabled>Save Notes</button>
+        /* Timer Display */
+        .timer-display {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        }
 
-<script>
-let studyInterval;
-let startTime;
-let elapsedTime = 0;
-let isStudying = false;
-let currentChapterId = null;
+        #timer {
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #ff6b6b;
+            margin-bottom: 0.5rem;
+            font-family: 'Courier New', monospace;
+        }
 
-// Timer functions
-function updateTimer() {
-    const now = new Date();
-    const diff = now - startTime + elapsedTime;
-    const hours = Math.floor(diff / 3600000);
-    const minutes = Math.floor((diff % 3600000) / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    
-    document.getElementById('timer').textContent = 
-        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-}
+        #timer-status {
+            font-size: 1.2rem;
+            color: #667eea;
+            font-weight: 500;
+        }
 
-function startTimer() {
-    if (!isStudying) {
-        startTime = new Date();
-        studyInterval = setInterval(updateTimer, 1000);
-        isStudying = true;
-        document.getElementById('timer-status').textContent = 'Studying...';
-        document.getElementById('study-btn').textContent = 'Pause Studying';
-        document.getElementById('save-time').style.display = 'inline-block';
-    }
-}
+        /* Form Elements */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
 
-function pauseTimer() {
-    if (isStudying) {
-        clearInterval(studyInterval);
-        const now = new Date();
-        elapsedTime += now - startTime;
-        isStudying = false;
-        document.getElementById('timer-status').textContent = 'Paused';
-        document.getElementById('study-btn').textContent = 'Resume Studying';
-    }
-}
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #444;
+        }
 
-function resetTimer() {
-    clearInterval(studyInterval);
-    elapsedTime = 0;
-    isStudying = false;
-    document.getElementById('timer').textContent = '00:00:00';
-    document.getElementById('timer-status').textContent = 'Ready to study';
-    document.getElementById('study-btn').textContent = 'Start Studying';
-    document.getElementById('save-time').style.display = 'none';
-}
+        select, textarea {
+            width: 100%;
+            padding: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-family: 'Poppins', sans-serif;
+            transition: border-color 0.3s;
+        }
 
-// Event Listeners
-document.getElementById('subject-select').addEventListener('change', function() {
-    const subjectId = this.value;
-    if (subjectId) {
-        fetch(`/get-chapters/?subject_id=${subjectId}`)
-            .then(response => response.json())
-            .then(data => {
-                const chapterSelect = document.getElementById('chapter-select');
-                chapterSelect.innerHTML = '<option value="">Select Chapter</option>';
-                data.chapters.forEach(chapter => {
-                    chapterSelect.innerHTML += `<option value="${chapter.id}">${chapter.name}</option>`;
-                });
-                chapterSelect.disabled = false;
-            });
-    }
-});
+        select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
 
-document.getElementById('chapter-select').addEventListener('change', function() {
-    currentChapterId = this.value;
-    const isChapterSelected = !!currentChapterId;
-    
-    document.getElementById('study-btn').disabled = !isChapterSelected;
-    document.getElementById('chapter-notes').disabled = !isChapterSelected;
-    document.getElementById('save-notes').disabled = !isChapterSelected;
-    
-    if (isChapterSelected) {
-        fetch(`/get-notes/?chapter_id=${currentChapterId}`)
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('chapter-notes').value = data.notes;
-            });
-    } else {
-        resetTimer();
-    }
-});
+        textarea {
+            min-height: 120px;
+            resize: vertical;
+        }
 
-document.getElementById('study-btn').addEventListener('click', function() {
-    if (!isStudying) {
-        startTimer();
-    } else {
-        pauseTimer();
-    }
-});
+        /* Buttons */
+        .button-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
 
-document.getElementById('save-time').addEventListener('click', function() {
-    if (currentChapterId && elapsedTime > 0) {
-        // Convert milliseconds to minutes (or seconds if you prefer)
-        const minutesStudied = Math.round(elapsedTime / 60000);
-        
-        fetch('/save-study-time/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                chapter_id: currentChapterId,
-                time_studied: minutesStudied
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert(`Saved ${minutesStudied} minutes of study time!`);
+        .btn {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 140px;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #ff6b6b, #667eea);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e9ecef;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Notes Section */
+        .notes-section {
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px dashed #eaeaea;
+        }
+
+        .notes-section h3 {
+            color: #333;
+            margin-bottom: 1rem;
+            font-weight: 600;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            .study-session-container {
+                padding: 1.5rem;
+            }
+            
+            #timer {
+                font-size: 2.8rem;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+            
+            .btn {
+                width: 100%;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="study-session-container">
+        <div class="study-header">
+            <h2>Study Session</h2>
+        </div>
+
+        <!-- Timer Display -->
+        <div class="timer-display">
+            <h1 id="timer">00:00:00</h1>
+            <p id="timer-status">Ready to study</p>
+        </div>
+
+        <!-- Subject Selection -->
+        <div class="form-group">
+            <label for="subject-select">Select Subject</label>
+            <select id="subject-select">
+                <option value="">Choose a subject</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- Chapter Selection -->
+        <div class="form-group">
+            <label for="chapter-select">Select Chapter</label>
+            <select id="chapter-select" disabled>
+                <option value="">Choose a chapter</option>
+            </select>
+        </div>
+
+        <!-- Buttons -->
+        <div class="button-group">
+            <button id="study-btn" class="btn btn-primary" disabled>Start Studying</button>
+            <button id="save-time" class="btn btn-secondary" style="display:none;">Save Study Time</button>
+        </div>
+
+        <!-- Notes Section -->
+        <div class="notes-section">
+            <h3>Chapter Notes</h3>
+            <div class="form-group">
+                <textarea id="chapter-notes" placeholder="Add your notes for this chapter here..." disabled></textarea>
+            </div>
+            <button id="save-notes" class="btn btn-primary" disabled>Save Notes</button>
+        </div>
+    </div>
+
+    <script>
+        let studyInterval;
+        let startTime;
+        let elapsedTime = 0;
+        let isStudying = false;
+        let currentChapterId = null;
+
+        // Timer functions
+        function updateTimer() {
+            const now = new Date();
+            const diff = now - startTime + elapsedTime;
+            const hours = Math.floor(diff / 3600000);
+            const minutes = Math.floor((diff % 3600000) / 60000);
+            const seconds = Math.floor((diff % 60000) / 1000);
+            
+            document.getElementById('timer').textContent = 
+                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function startTimer() {
+            if (!isStudying) {
+                startTime = new Date();
+                studyInterval = setInterval(updateTimer, 1000);
+                isStudying = true;
+                document.getElementById('timer-status').textContent = 'Studying...';
+                document.getElementById('study-btn').textContent = 'Pause Studying';
+                document.getElementById('save-time').style.display = 'inline-block';
+                
+                // Change button color when studying
+                document.getElementById('study-btn').style.background = 'linear-gradient(90deg, #ff5252, #5a67d8)';
+            }
+        }
+
+        function pauseTimer() {
+            if (isStudying) {
+                clearInterval(studyInterval);
+                const now = new Date();
+                elapsedTime += now - startTime;
+                isStudying = false;
+                document.getElementById('timer-status').textContent = 'Paused';
+                document.getElementById('study-btn').textContent = 'Resume Studying';
+                
+                // Revert button color when paused
+                document.getElementById('study-btn').style.background = 'linear-gradient(90deg, #ff6b6b, #667eea)';
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(studyInterval);
+            elapsedTime = 0;
+            isStudying = false;
+            document.getElementById('timer').textContent = '00:00:00';
+            document.getElementById('timer-status').textContent = 'Ready to study';
+            document.getElementById('study-btn').textContent = 'Start Studying';
+            document.getElementById('save-time').style.display = 'none';
+            
+            // Revert button color
+            document.getElementById('study-btn').style.background = 'linear-gradient(90deg, #ff6b6b, #667eea)';
+        }
+
+        // Event Listeners
+        document.getElementById('subject-select').addEventListener('change', function() {
+            const subjectId = this.value;
+            const chapterSelect = document.getElementById('chapter-select');
+            
+            if (subjectId) {
+                // Show loading state
+                chapterSelect.innerHTML = '<option value="">Loading chapters...</option>';
+                chapterSelect.disabled = true;
+                
+                fetch(`/get-chapters/?subject_id=${subjectId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        chapterSelect.innerHTML = '<option value="">Choose a chapter</option>';
+                        data.chapters.forEach(chapter => {
+                            chapterSelect.innerHTML += `<option value="${chapter.id}">${chapter.name}</option>`;
+                        });
+                        chapterSelect.disabled = false;
+                    })
+                    .catch(error => {
+                        console.error('Error loading chapters:', error);
+                        chapterSelect.innerHTML = '<option value="">Error loading chapters</option>';
+                    });
+            } else {
+                chapterSelect.innerHTML = '<option value="">Choose a chapter</option>';
+                chapterSelect.disabled = true;
                 resetTimer();
             }
         });
-    }
-});
 
-document.getElementById('save-notes').addEventListener('click', function() {
-    if (currentChapterId) {
-        const notes = document.getElementById('chapter-notes').value;
-        
-        fetch('/save-notes/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                chapter_id: currentChapterId,
-                notes: notes
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.status === 'success') {
-                alert('Notes saved successfully!');
+        document.getElementById('chapter-select').addEventListener('change', function() {
+            currentChapterId = this.value;
+            const isChapterSelected = !!currentChapterId;
+            
+            document.getElementById('study-btn').disabled = !isChapterSelected;
+            document.getElementById('chapter-notes').disabled = !isChapterSelected;
+            document.getElementById('save-notes').disabled = !isChapterSelected;
+            
+            if (isChapterSelected) {
+                // Show loading state for notes
+                document.getElementById('chapter-notes').value = "Loading notes...";
+                
+                fetch(`/get-notes/?chapter_id=${currentChapterId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('chapter-notes').value = data.notes || "";
+                    })
+                    .catch(error => {
+                        console.error('Error loading notes:', error);
+                        document.getElementById('chapter-notes').value = "Error loading notes";
+                    });
+            } else {
+                document.getElementById('chapter-notes').value = "";
+                resetTimer();
             }
         });
-    }
-});
-</script>
+
+        document.getElementById('study-btn').addEventListener('click', function() {
+            if (!isStudying) {
+                startTimer();
+            } else {
+                pauseTimer();
+            }
+        });
+
+        document.getElementById('save-time').addEventListener('click', function() {
+            if (currentChapterId && elapsedTime > 0) {
+                // Convert milliseconds to minutes
+                const minutesStudied = Math.round(elapsedTime / 60000);
+                
+                // Show loading state
+                const originalText = this.textContent;
+                this.innerHTML = '<span class="loading"></span> Saving...';
+                this.disabled = true;
+                
+                fetch('/save-study-time/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        chapter_id: currentChapterId,
+                        time_studied: minutesStudied
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`Saved ${minutesStudied} minutes of study time!`);
+                        resetTimer();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving study time:', error);
+                    alert('Error saving study time. Please try again.');
+                })
+                .finally(() => {
+                    this.textContent = originalText;
+                    this.disabled = false;
+                });
+            }
+        });
+
+        document.getElementById('save-notes').addEventListener('click', function() {
+            if (currentChapterId) {
+                const notes = document.getElementById('chapter-notes').value;
+                
+                // Show loading state
+                const originalText = this.textContent;
+                this.innerHTML = '<span class="loading"></span> Saving...';
+                this.disabled = true;
+                
+                fetch('/save-notes/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        chapter_id: currentChapterId,
+                        notes: notes
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('Notes saved successfully!');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving notes:', error);
+                    alert('Error saving notes. Please try again.');
+                })
+                .finally(() => {
+                    this.textContent = originalText;
+                    this.disabled = false;
+                });
+            }
+        });
+    </script>
+</body>
+</html>

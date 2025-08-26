@@ -151,3 +151,9 @@ def save_study_time(request):
             return JsonResponse({'status': 'error', 'message': 'Invalid data'})
     
     return JsonResponse({'status': 'error', 'message': 'Invalid request'})
+
+
+def profile(request):
+    if not request.user.is_authenticated:
+        return redirect('login')
+    return redirect('dashboard')
