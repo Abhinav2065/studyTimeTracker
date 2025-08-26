@@ -1,0 +1,7 @@
+<h2>Add New Subject</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Add Subject</button>
+</form>
+<a href="{% url 'dashboard' %}">Back to Dashboard</a>

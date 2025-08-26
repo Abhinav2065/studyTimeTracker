@@ -1,0 +1,27 @@
+<!-- studyapp/templates/dashboard.html -->
+<h2>Welcome, {{ request.user.username }}!</h2>
+<h3>Your Study Dashboard</h3>
+
+{% for subject in subjects %}
+    <div class="subject">
+        <h4>{{ subject.name }}</h4>
+        <p>Total Time: {{ subject.total_time }} minutes</p>
+        
+        <h5>Chapters:</h5>
+        <ul>
+            {% for chapter in subject.chapter_set.all %}  <!-- Reverse lookup for chapters -->
+                <li>{{ chapter.name }}: {{ chapter.time_studied }} minutes</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+{% empty %}
+    <p>You haven't added any subjects yet.</p>
+{% endfor %}
+
+
+    <p>Add more Subjects:  <a href="{% url 'add_subject' %}">Add subjects here</a></p>
+    <p>Add more Chapters:  <a href="{% url 'add_chapter' %}">Add chapters here</a></p>
+    <a href="{% url 'study_session' %}">Start Studying</a>
+
+    
