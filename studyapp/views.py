@@ -10,8 +10,13 @@ import json
 
 # Create your views here.
 
+
+def home(request):
+    return render(request, 'studyapp/home.html', {})
+
+
 class CustomLoginView(LoginView):
-    template_name = 'custom_login.html'
+    template_name = 'studyapp/custom_login.html'
 
 
 def register(request):
@@ -24,7 +29,7 @@ def register(request):
     else:
         form = UserCreationForm()
     
-    return render(request, 'register.html', {'form': form})
+    return render(request, 'studyapp/register.html', {'form': form})
 
 
 def dashboard(request):
@@ -37,7 +42,7 @@ def dashboard(request):
     context = {
         'subjects': user_subjects,
     }
-    return render(request, 'dashboard.html', context)
+    return render(request, 'studyapp/dashboard.html', context)
 
 def addSubject(request):
     if not request.user.is_authenticated:
@@ -56,7 +61,7 @@ def addSubject(request):
         form = SubjectForm()
 
 
-    return render(request, 'add_subject.html', {'form': form})
+    return render(request, 'studyapp/add_subject.html', {'form': form})
 
 
 def addChapter(request):
@@ -71,7 +76,7 @@ def addChapter(request):
     else:
         form = ChapterForm(request.user)  # Pass user to form
 
-    return render(request, 'add_chapter.html', {'form': form})
+    return render(request, 'studyapp/add_chapter.html', {'form': form})
 
 
 def study_session(request):
@@ -79,7 +84,7 @@ def study_session(request):
         return redirect('login')
 
     user_subjects = Subject.objects.filter(user=request.user)
-    return render(request, 'study_session.html', {'subjects': user_subjects})
+    return render(request, 'studyapp/study_session.html', {'subjects': user_subjects})
 
 
 
