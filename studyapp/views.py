@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth.views import LoginView
+from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib import messages
 from .models import Subject, Chapter
@@ -121,12 +121,6 @@ def save_notes(request):
 
 
 
-
-
-
-
-
-
 def save_study_time(request):
     if request.method == 'POST' and request.user.is_authenticated:
         try:
@@ -157,3 +151,5 @@ def profile(request):
     if not request.user.is_authenticated:
         return redirect('login')
     return redirect('dashboard')
+
+

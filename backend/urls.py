@@ -4,6 +4,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from studyapp.views import CustomLoginView, register, dashboard, addSubject, addChapter, study_session, get_chapters, get_notes, save_notes, start_study_session, save_study_time, home, profile
 from django.conf import settings
 from django.conf.urls.static import static
+from django.contrib.auth import views as auth_views
+
+
 
 urlpatterns = [
     path("", home, name='home'),
@@ -21,7 +24,8 @@ urlpatterns = [
     path('save-notes/', save_notes, name='save_notes'),
     path('start-study/', start_study_session, name='start_study'),
     path('save-study-time/', save_study_time, name='save_study_time'), 
-    ]
+    path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
+]
 
 
 if settings.DEBUG:
