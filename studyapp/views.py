@@ -111,15 +111,25 @@ def get_notes(request):
 
 
 def save_notes(request):
-    if request.method == 'POST':
-        chapter_id = request.POST.get('chapter_id')
-        notes = request.POST.get('notes')
-        chapter = Chapter.objects.get(id=chapter_id)
-        chapter.notes = notes
-        chapter.save()
-        return JsonResponse({'status': 'success'})
-
-
+    if request.method == 'POST' and request.user.is_authenticated:
+        try:
+            data = json.loads(request.body)
+            chapter_id = data.get('chapter_id')
+            notes = data.get('notes')
+            
+            # Get the chapter and update notes
+            chapter = Chapter.objects.get(id=chapter_id)
+            chapter.notes = notes  # Replace the notes, don't append
+            chapter.save()
+            
+            return JsonResponse({'status': 'success'})
+            
+        except Chapter.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Chapter not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 def save_study_time(request):
     if request.method == 'POST' and request.user.is_authenticated:
@@ -151,5 +161,6 @@ def profile(request):
     if not request.user.is_authenticated:
         return redirect('login')
     return redirect('dashboard')
+
 
 

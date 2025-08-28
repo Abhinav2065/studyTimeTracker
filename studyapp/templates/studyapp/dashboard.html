@@ -329,6 +329,11 @@
       .logout-form button:hover {
         background-color: rgba(0, 0, 0, 0.1);
       }
+
+      .view-notes {
+        text-decoration: none;
+      }
+
     </style>
   </head>
   <body>
@@ -418,9 +423,10 @@
                 {% for chapter in subject.chapter_set.all %}
                 <li class="chapter-item">
                   <span class="chapter-name">{{ chapter.name }}</span>
+                  
                   <span class="chapter-time"
-                    >{{ chapter.time_studied }} min</span
-                  >
+                    >{{ chapter.time_studied }} min</span>
+                
                 </li>
                 {% endfor %}
               </ul>

@@ -34,11 +34,34 @@
             max-width: 600px;
             overflow: hidden;
             padding: 2rem;
+            position: relative;
+        }
+
+        .dashboard-link {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .dashboard-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
 
         .study-header {
             text-align: center;
             margin-bottom: 2rem;
+            padding-right: 100px; /* Space for the dashboard link */
         }
 
         .study-header h2 {
@@ -107,10 +130,10 @@
 
         /* Buttons */
         .button-group {
-            display: flex;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
             margin-bottom: 1.5rem;
-            flex-wrap: wrap;
         }
 
         .btn {
@@ -121,8 +144,6 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            flex: 1;
-            min-width: 140px;
             text-align: center;
         }
 
@@ -146,6 +167,16 @@
             background: #e9ecef;
         }
 
+        .btn-success {
+            background: linear-gradient(90deg, #4CAF50, #45a049);
+            color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
@@ -166,6 +197,20 @@
             font-weight: 600;
         }
 
+        /* Session Summary */
+        .session-summary {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 10px;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .session-summary h4 {
+            margin-bottom: 0.5rem;
+            color: #333;
+        }
+
         /* Responsive Design */
         @media (max-width: 600px) {
             .study-session-container {
@@ -177,20 +222,27 @@
             }
             
             .button-group {
-                flex-direction: column;
+                grid-template-columns: 1fr;
             }
             
-            .btn {
-                width: 100%;
+            .dashboard-link {
+                position: static;
+                margin-bottom: 1rem;
+                text-align: center;
+                justify-content: center;
+            }
+            
+            .study-header {
+                padding-right: 0;
             }
         }
 
         /* Loading Animation */
         .loading {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
             border-radius: 50%;
             border-top-color: white;
             animation: spin 1s ease-in-out infinite;
@@ -203,6 +255,11 @@
 </head>
 <body>
     <div class="study-session-container">
+        <!-- Dashboard Link -->
+        <a href="{% url 'dashboard' %}" class="dashboard-link">
+            📊 Dashboard
+        </a>
+
         <div class="study-header">
             <h2>Study Session</h2>
         </div>
@@ -235,7 +292,13 @@
         <!-- Buttons -->
         <div class="button-group">
             <button id="study-btn" class="btn btn-primary" disabled>Start Studying</button>
-            <button id="save-time" class="btn btn-secondary" style="display:none;">Save Study Time</button>
+            <button id="save-time" class="btn btn-success" style="display:none;">Save Study Time</button>
+        </div>
+
+        <!-- Session Summary -->
+        <div class="session-summary" id="session-summary">
+            <h4>Last Session Saved</h4>
+            <p id="last-session-time">0 minutes</p>
         </div>
 
         <!-- Notes Section -->
@@ -244,7 +307,9 @@
             <div class="form-group">
                 <textarea id="chapter-notes" placeholder="Add your notes for this chapter here..." disabled></textarea>
             </div>
-            <button id="save-notes" class="btn btn-primary" disabled>Save Notes</button>
+            <div class="button-group">
+                <button id="save-notes" class="btn btn-primary" disabled>Save Notes</button>
+            </div>
         </div>
     </div>
 
@@ -254,6 +319,7 @@
         let elapsedTime = 0;
         let isStudying = false;
         let currentChapterId = null;
+        let totalSessionTime = 0;
 
         // Timer functions
         function updateTimer() {
@@ -275,8 +341,6 @@
                 document.getElementById('timer-status').textContent = 'Studying...';
                 document.getElementById('study-btn').textContent = 'Pause Studying';
                 document.getElementById('save-time').style.display = 'inline-block';
-                
-                // Change button color when studying
                 document.getElementById('study-btn').style.background = 'linear-gradient(90deg, #ff5252, #5a67d8)';
             }
         }
@@ -289,8 +353,6 @@
                 isStudying = false;
                 document.getElementById('timer-status').textContent = 'Paused';
                 document.getElementById('study-btn').textContent = 'Resume Studying';
-                
-                // Revert button color when paused
                 document.getElementById('study-btn').style.background = 'linear-gradient(90deg, #ff6b6b, #667eea)';
             }
         }
@@ -303,9 +365,55 @@
             document.getElementById('timer-status').textContent = 'Ready to study';
             document.getElementById('study-btn').textContent = 'Start Studying';
             document.getElementById('save-time').style.display = 'none';
-            
-            // Revert button color
             document.getElementById('study-btn').style.background = 'linear-gradient(90deg, #ff6b6b, #667eea)';
+        }
+
+        // Save study time without pausing
+        function saveStudyTime() {
+            if (currentChapterId && elapsedTime > 0) {
+                const minutesStudied = Math.round(elapsedTime / 60000);
+                totalSessionTime += minutesStudied;
+                
+                // Show loading state on save button
+                const saveButton = document.getElementById('save-time');
+                const originalText = saveButton.textContent;
+                saveButton.innerHTML = '<span class="loading"></span> Saving...';
+                saveButton.disabled = true;
+                
+                fetch('/save-study-time/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: JSON.stringify({
+                        chapter_id: currentChapterId,
+                        time_studied: minutesStudied
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Show session summary
+                        document.getElementById('session-summary').style.display = 'block';
+                        document.getElementById('last-session-time').textContent = 
+                            `${minutesStudied} minutes (Total: ${totalSessionTime} minutes)`;
+                        
+                        // Reset elapsed time but keep timer running
+                        elapsedTime = 0;
+                        startTime = new Date();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error saving study time:', error);
+                    alert('Error saving study time. Please try again.');
+                })
+                .finally(() => {
+                    saveButton.textContent = originalText;
+                    saveButton.disabled = false;
+                });
+            }
         }
 
         // Event Listeners
@@ -314,7 +422,6 @@
             const chapterSelect = document.getElementById('chapter-select');
             
             if (subjectId) {
-                // Show loading state
                 chapterSelect.innerHTML = '<option value="">Loading chapters...</option>';
                 chapterSelect.disabled = true;
                 
@@ -347,7 +454,7 @@
             document.getElementById('save-notes').disabled = !isChapterSelected;
             
             if (isChapterSelected) {
-                // Show loading state for notes
+                // Load existing notes for this chapter
                 document.getElementById('chapter-notes').value = "Loading notes...";
                 
                 fetch(`/get-notes/?chapter_id=${currentChapterId}`)
@@ -374,50 +481,12 @@
         });
 
         document.getElementById('save-time').addEventListener('click', function() {
-            if (currentChapterId && elapsedTime > 0) {
-                // Convert milliseconds to minutes
-                const minutesStudied = Math.round(elapsedTime / 60000);
-                
-                // Show loading state
-                const originalText = this.textContent;
-                this.innerHTML = '<span class="loading"></span> Saving...';
-                this.disabled = true;
-                
-                fetch('/save-study-time/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    body: JSON.stringify({
-                        chapter_id: currentChapterId,
-                        time_studied: minutesStudied
-                    })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert(`Saved ${minutesStudied} minutes of study time!`);
-                        resetTimer();
-                    }
-                })
-                .catch(error => {
-                    console.error('Error saving study time:', error);
-                    alert('Error saving study time. Please try again.');
-                })
-                .finally(() => {
-                    this.textContent = originalText;
-                    this.disabled = false;
-                });
-            }
+            saveStudyTime();
         });
 
         document.getElementById('save-notes').addEventListener('click', function() {
             if (currentChapterId) {
                 const notes = document.getElementById('chapter-notes').value;
-                
-                // Show loading state
                 const originalText = this.textContent;
                 this.innerHTML = '<span class="loading"></span> Saving...';
                 this.disabled = true;
@@ -438,6 +507,8 @@
                 .then(data => {
                     if (data.status === 'success') {
                         alert('Notes saved successfully!');
+                    } else {
+                        alert('Error saving notes: ' + (data.message || 'Unknown error'));
                     }
                 })
                 .catch(error => {
@@ -448,8 +519,29 @@
                     this.textContent = originalText;
                     this.disabled = false;
                 });
+            } else {
+                alert('Please select a chapter first!');
             }
         });
+
+        // Add loading animation style
+        const style = document.createElement('style');
+        style.textContent = `
+            .loading {
+                display: inline-block;
+                width: 16px;
+                height: 16px;
+                border: 2px solid rgba(255, 255, 255, 0.3);
+                border-radius: 50%;
+                border-top-color: white;
+                animation: spin 1s ease-in-out infinite;
+            }
+            
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

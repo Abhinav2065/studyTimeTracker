@@ -25,6 +25,7 @@ urlpatterns = [
     path('start-study/', start_study_session, name='start_study'),
     path('save-study-time/', save_study_time, name='save_study_time'), 
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
+
 ]
 
 
